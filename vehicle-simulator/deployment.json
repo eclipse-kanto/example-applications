@@ -1,0 +1,20 @@
+{
+    "container_name": "vehicle-simulator",
+    "image": {
+        "name": "<image:version>"
+    },
+    "config": {
+      "cmd": [
+        "/bin/app",
+        "--ctd-effect-delay=30",
+        "--periodic-updates-delay=5",
+        "--idle-state-time=120"
+      ]
+    },
+    "host_config": {
+      "extra_hosts": [
+          "ctrhost:host_ip"
+      ]
+    }
+  }
+  
