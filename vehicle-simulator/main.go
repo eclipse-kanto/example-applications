@@ -36,7 +36,6 @@ type DeviceData struct {
 var mqttClient mqtt.Client
 var deviceData = DeviceData{}
 var telemetrySenderStarted bool
-var selectedConnectorDeviceID string // holds the last deviceID from the previous active connector
 var ctdSubscriptionTopics []string
 
 var stopTelemetrySender = make(chan struct{})
@@ -46,6 +45,10 @@ var controlTelemetrySender = make(chan string)
 var ctdEffectDelay = flag.Int("ctd-effect-delay", 30, "In seconds, Configure trunk/alarms state time")
 var periodicUpdatesDelay = flag.Int("periodic-updates-delay", 5, "In seconds, Configure periodic updates (minimum 5)")
 var idleStateTime = flag.Int("idle-state-time", 120, "In seconds, Configure when the system will enter idle state. Idle state will send telemetry data infrequently. Receiving CTD command will reset the idle state.")
+var brokerURL = flag.String("broker-url", "tcp://localhost:1883", "Specify the MQTT broker URL to connect to (default \"tcp://localhost:1883\").")
+var brokerUsername = flag.String("broker-username", "", "Specify the MQTT client password to authenticate with.")
+var brokerPassword = flag.String("broker-password", "", "Specify the MQTT client username to authenticate with.")
+
 var initialPeriodicUpdatesDelay = 0 // set the initial periodic updates delay in case of idle state active
 
 func main() {
@@ -58,17 +61,24 @@ func main() {
 	initializeClient()
 	getDeviceData()
 
-	defer func() { stopTelemetrySender <- struct{}{} }()
+	defer func() { 
+		if telemetrySenderStarted {
+			stopTelemetrySender <- struct{}{} 
+		}
+	}()
 	defer mqttClient.Disconnect(1000)
 
 	<-keepAlive
 }
 
 func initializeClient() {
-	brokerURL := fmt.Sprintf("tcp://%s:%s", getEnvVariable("ADAPTER_BROKER_ADDRESS", "localhost"), getEnvVariable("ADAPTER_BROKER_PORT", "1883"))
-	slog.Info("Broker configuration", "URL", brokerURL)
+	slog.Info("Broker configuration", "URL", *brokerURL)
 	options := mqtt.NewClientOptions()
-	options.AddBroker(brokerURL)
+	options.AddBroker(*brokerURL)
+	if *brokerUsername != "" {
+		options.SetUsername(*brokerUsername)
+		options.SetPassword(*brokerPassword)
+	}
 	mqttClient = mqtt.NewClient(options)
 
 	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
@@ -90,31 +100,32 @@ func getDeviceData() {
 }
 
 func handleDeviceDataReceived(sourceClient mqtt.Client, message mqtt.Message) {
-	if err := json.Unmarshal(message.Payload(), &deviceData); err != nil {
+	deviceDataReceived := DeviceData{}
+	if err := json.Unmarshal(message.Payload(), &deviceDataReceived); err != nil {
 		slog.Error("Error during payload unmarshal: ", err)
 		return
 	}
 
-	slog.Info("Connector Device Data received successfully", "data", deviceData)
-	if deviceData.DeviceID == selectedConnectorDeviceID {
-		slog.Info("Skipping the same connector deviceID instance.")
+	slog.Info("Connector Device Data received successfully", "data", deviceDataReceived)
+	if deviceDataReceived.DeviceID == deviceData.DeviceID && deviceDataReceived.TenantID == deviceData.TenantID {
+		slog.Debug("Skipping the same connector instance.")
 		return
 	}
 
 	unsubscribeAllCTD()
-	subscribeForCTD(deviceData.DeviceID)
+	subscribeForCTD(deviceDataReceived.DeviceID)
 	startSendingRandomlyGeneratedTelemetryData()
-	selectedConnectorDeviceID = deviceData.DeviceID
+	deviceData = deviceDataReceived
 }
 
 func subscribeForCTD(deviceId string) {
-	slog.Info("Subscribing for CTD commands: resetDtc & openTrunk...")
-	topicResetDtc := fmt.Sprintf("command//%s:Vehicle/req//resetDtc", deviceId)
-	ctdSubscriptionTopics = append(ctdSubscriptionTopics, topicResetDtc)
+	slog.Info("Subscribing for CTD commands: resetDTC & openTrunk...")
+	topicResetDTC := fmt.Sprintf("command//%s:Vehicle/req//resetDTC", deviceId)
+	ctdSubscriptionTopics = append(ctdSubscriptionTopics, topicResetDTC)
 	topicOpenTrunk := fmt.Sprintf("command//%s:Vehicle/req//openTrunk", deviceId)
 	ctdSubscriptionTopics = append(ctdSubscriptionTopics, topicOpenTrunk)
 
-	mqttClient.Subscribe(topicResetDtc, 1, handleResetDtc).Wait()
+	mqttClient.Subscribe(topicResetDTC, 1, handleResetDTC).Wait()
 	mqttClient.Subscribe(topicOpenTrunk, 1, handleOpenTrunk).Wait()
 }
 
@@ -125,20 +136,29 @@ func startSendingRandomlyGeneratedTelemetryData() {
 	}
 }
 
-func handleResetDtc(sourceClient mqtt.Client, message mqtt.Message) {
-	if err := json.Unmarshal(message.Payload(), &deviceData); err != nil {
+func handleResetDTC(sourceClient mqtt.Client, message mqtt.Message) {
+	envelope := protocol.Envelope{}
+	if err := json.Unmarshal(message.Payload(), &envelope); err != nil {
 		slog.Error("Error during payload unmarshal", "error", err)
 		return
 	}
+	if envelope.Path != "/features/DTC/inbox/messages/resetDTC" {
+		slog.Info("wrong path received", "path", envelope.Path)
+		return
+	}
+	slog.Info("CTD Reset DTC received:", envelope)
 
-	slog.Info("CTD Reset DTC received:", deviceData)
-
-	controlTelemetrySender <- "resetDtc"
+	controlTelemetrySender <- "resetDTC"
 }
 
 func handleOpenTrunk(sourceClient mqtt.Client, message mqtt.Message) {
-	if err := json.Unmarshal(message.Payload(), &deviceData); err != nil {
+	envelope := protocol.Envelope{}
+	if err := json.Unmarshal(message.Payload(), &envelope); err != nil {
 		slog.Error("Error during payload unmarshal", "error", err)
+		return
+	}
+	if envelope.Path != "/features/trunk/inbox/messages/openTrunk" {
+		slog.Info("wrong path received", "path", envelope.Path)
 		return
 	}
 	slog.Info("CTD Open Trunk received", "data", deviceData)

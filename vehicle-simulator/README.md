@@ -4,8 +4,7 @@
 
 # Introduction
 
-The simulator is used to feed simulated vehicle data and showcase the cloud connectivity that comes with Kanto. The data is really simple and simulates a small portion of actual data that can be sent by actual vehicle. This data is sent to the local mqtt broker and depending on the Kanto configuration uploaded in the corresponding cloud. It is especially designed to work with the BLING demo application. This application reads the data from the corresponding cloud instance and visualizes it. Additionally both the simulator and the demo application support sending commands from the demo application through the cloud instance, to the corresponding Kanto cloud connector and finally to the simulator.
-
+The simulator is used to feed simulated vehicle data and showcase the cloud connectivity that comes with Kanto. The data is really simple and simulates a small portion of actual data that can be sent by actual vehicle. This data is sent to the local mqtt broker and depending on the Kanto configuration uploaded in the corresponding cloud.
 # Telemetry data
 
 The simulator sends periodic updates for a ditto feature called *OBD*. This feature contains information for the Control Module Voltage and for three standard DTCs (Device Trouble Code) b1601, b1602 and b1603. The values are randomly generated. Here is a sample ditto message.
@@ -24,7 +23,7 @@ The simulator sends periodic updates for a ditto feature called *OBD*. This feat
          "b1601": true,
          "b1602": false,
          "b1603": true
-      }.
+      }
    }
 }
 ```
@@ -67,7 +66,7 @@ To invoke the command one needs to send a message from the cloud instance to the
   "content-type": "application/json",
     "response-required": false
   },
-  "path": "/"
+  "path": "/features/trunk/inbox/messages/openTrunk"
 }
 ```
 
@@ -79,12 +78,12 @@ To invoke the command one needs to send a message from the cloud instance to the
 
 ```json
 {
-  "topic": "<YourDeviceId>:Vehicle/things/twin/commands/resetDtc",
+  "topic": "<YourDeviceId>:Vehicle/things/twin/commands/resetDTC",
   "headers": {
   "content-type": "application/json",
     "response-required": false
   },
-  "path": "/"
+  "path": "/features/DTC/inbox/messages/resetDTC"
 }
 ```
 

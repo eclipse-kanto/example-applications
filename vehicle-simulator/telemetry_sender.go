@@ -55,7 +55,7 @@ func telemetrySender(stopTelemetrySender <-chan struct{}, controlChan <-chan str
 			return
 		case signal := <-controlChan:
 			switch signal {
-			case "resetDtc":
+			case "resetDTC":
 				slog.Info("Resetting DTC...")
 				resetIdleState()
 				dtcStateStartTime = time.Now()
@@ -91,9 +91,9 @@ func processTrunkFeatureData() {
 }
 
 func processOBDfeatureData() {
-	elapsedDtcStateTime := time.Since(dtcStateStartTime)
+	elapsedDTCStateTime := time.Since(dtcStateStartTime)
 
-	if elapsedDtcStateTime > time.Duration(*ctdEffectDelay)*time.Second {
+	if elapsedDTCStateTime > time.Duration(*ctdEffectDelay)*time.Second {
 		telemetry.B1601 = rand.Intn(10) > 5
 		telemetry.B1602 = rand.Intn(10) > 5
 		telemetry.B1603 = rand.Intn(10) > 5
@@ -111,7 +111,7 @@ func sendTrunkTelemetry() {
 		"isOpen": telemetry.isTrunkOpen,
 	})
 	slog.Info("Sending Telemetry Data", "trunkFeature", trunkFeature)
-	publishCloudUpdate(trunkFeature, "trunk", "Vehicle")
+	publishCloudUpdate(trunkFeature, "Trunk", "Vehicle")
 }
 
 func sendOBDTelemetry() {

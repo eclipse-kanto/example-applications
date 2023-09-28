@@ -4,9 +4,6 @@
         "name": "<image:version>"
     },
     "config": {
-      "env": [
-          "ADAPTER_BROKER_ADDRESS=ctrhost"
-      ],
       "cmd": [
         "/bin/app",
         "--ctd-effect-delay=30",
@@ -15,18 +12,9 @@
       ]
     },
     "host_config": {
-      "privileged": true,
       "extra_hosts": [
           "ctrhost:host_ip"
-      ],
-      "log_config": {
-        "driver_config": {
-          "type": "json-file",
-          "max_files": 2,
-          "max_size": "100M",
-          "root_dir": "/home/user/log/vehicle-simulator"
-        }
-      }
+      ]
     }
   }
   
