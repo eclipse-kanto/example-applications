@@ -114,8 +114,8 @@ func handleDeviceDataReceived(sourceClient mqtt.Client, message mqtt.Message) {
 
 	unsubscribeAllCTD()
 	subscribeForCTD(deviceDataReceived.DeviceID)
-	startSendingRandomlyGeneratedTelemetryData()
 	currentDeviceData = deviceDataReceived
+	startSendingRandomlyGeneratedTelemetryData()
 }
 
 func subscribeForCTD(deviceID string) {
