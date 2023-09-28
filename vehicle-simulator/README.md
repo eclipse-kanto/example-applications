@@ -28,7 +28,7 @@ The simulator sends periodic updates for a ditto feature called *OBD*. This feat
 }
 ```
 
-Another data sent from the simulator but only after some user interaction, which will be explained later is a ditto feature called *trunk*. It contains information if the trunk is open or closed. A sample message for the trunk state looks like this.
+Another data sent from the simulator but only after some user interaction, which will be explained later is a ditto feature called *Trunk*. It contains information if the trunk is open or closed. A sample message for the trunk state looks like this.
 
 ```json
 {
@@ -37,7 +37,7 @@ Another data sent from the simulator but only after some user interaction, which
       "content-type":"application/json",
       "response-required":false
    },
-   "path":"/features/trunk",
+   "path":"/features/Trunk",
    "value":{
       "properties":{
          "isOpen":true
@@ -55,7 +55,7 @@ The simulator supports the following commands.
 
 ## Open Trunk
 
-When Open Trunk command is received, the simulator sends a *trunk* feature update, reporting *"isOpen" : true*, simulating opening of the trunk. After predefined, but configurable amount of time, the simulator sends *trunk* feature update, reporting *"isOpen" : false*, simulating closing of the trunk.
+When Open Trunk command is received, the simulator sends a *Trunk* feature update, reporting *"isOpen" : true*, simulating opening of the trunk. After predefined, but configurable amount of time, the simulator sends *Trunk* feature update, reporting *"isOpen" : false*, simulating closing of the trunk.
 
 To invoke the command one needs to send a message from the cloud instance to the corresponding connected device, where the simulator is running. The exact way to do this depends on the cloud itself, but the message payload has to be in the following ditto format.
 
@@ -66,7 +66,7 @@ To invoke the command one needs to send a message from the cloud instance to the
   "content-type": "application/json",
     "response-required": false
   },
-  "path": "/features/trunk/inbox/messages/openTrunk"
+  "path": "/features/Trunk/inbox/messages/openTrunk"
 }
 ```
 

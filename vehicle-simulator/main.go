@@ -157,7 +157,7 @@ func handleOpenTrunk(sourceClient mqtt.Client, message mqtt.Message) {
 		slog.Error("Error during payload unmarshal", "error", err)
 		return
 	}
-	if envelope.Path != "/features/trunk/inbox/messages/openTrunk" {
+	if envelope.Path != "/features/Trunk/inbox/messages/openTrunk" {
 		slog.Info("wrong path received", "path", envelope.Path)
 		return
 	}
@@ -197,7 +197,7 @@ func getFullThingID(thingIDSuffix string) string {
 func validateFlags() {
 	slog.Info(fmt.Sprintf("Trunk/Alarms State Time: %d seconds", *ctdEffectDelay))
 	slog.Info(fmt.Sprintf("Periodic Updates Delay: %d seconds", *periodicUpdatesDelay))
-	slog.Info(fmt.Sprintf("IDle State Detection after: %d seconds", *idleStateTime))
+	slog.Info(fmt.Sprintf("Idle State Detection after: %d seconds", *idleStateTime))
 	initialPeriodicUpdatesDelay = *periodicUpdatesDelay
 
 	if *periodicUpdatesDelay < 5 {
