@@ -21,10 +21,10 @@ import (
 	dittoModel "github.com/eclipse/ditto-clients-golang/model"
 )
 
-var OBDFeature = dittoModel.Feature{}
+var obdFeature = dittoModel.Feature{}
 var trunkFeature = dittoModel.Feature{}
 
-type TelemetryData struct {
+type telemetryData struct {
 	ControlModuleVoltage string
 	B1601                bool
 	B1602                bool
@@ -32,7 +32,7 @@ type TelemetryData struct {
 	isTrunkOpen          bool
 }
 
-var telemetry TelemetryData
+var telemetry telemetryData
 
 var dtcStateStartTime time.Time   // device trouble codes start time to store the state
 var trunkStateStartTime time.Time // trunk start time to store the state
@@ -115,15 +115,15 @@ func sendTrunkTelemetry() {
 }
 
 func sendOBDTelemetry() {
-	OBDFeature.WithProperties(map[string]interface{}{
+	obdFeature.WithProperties(map[string]interface{}{
 		"controlModuleVoltage": telemetry.ControlModuleVoltage,
 		"b1601":                telemetry.B1601,
 		"b1602":                telemetry.B1602,
 		"b1603":                telemetry.B1603,
 	})
 
-	slog.Info("Sending Telemetry Data", "OBDFeature", OBDFeature)
-	publishCloudUpdate(OBDFeature, "OBD", "Vehicle")
+	slog.Info("Sending Telemetry Data", "OBDFeature", obdFeature)
+	publishCloudUpdate(obdFeature, "OBD", "Vehicle")
 }
 
 func resetIdleState() {

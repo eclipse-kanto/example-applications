@@ -8,7 +8,7 @@
 // https://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
 // which is available at https://www.apache.org/licenses/LICENSE-2.0.
 //
-// SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+// SPDX-License-IDentifier: EPL-2.0 OR Apache-2.0
 
 package main
 
@@ -27,14 +27,14 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-type DeviceData struct {
+type deviceData struct {
 	DeviceID string `json:"deviceID"`
 	TenantID string `json:"tenantID"`
 	PolicyID string `json:"policyID"`
 }
 
 var mqttClient mqtt.Client
-var deviceData = DeviceData{}
+var currentDeviceData = deviceData{}
 var telemetrySenderStarted bool
 var ctdSubscriptionTopics []string
 
@@ -44,7 +44,7 @@ var controlTelemetrySender = make(chan string)
 // Define flag variables
 var ctdEffectDelay = flag.Int("ctd-effect-delay", 30, "In seconds, Configure trunk/alarms state time")
 var periodicUpdatesDelay = flag.Int("periodic-updates-delay", 5, "In seconds, Configure periodic updates (minimum 5)")
-var idleStateTime = flag.Int("idle-state-time", 120, "In seconds, Configure when the system will enter idle state. Idle state will send telemetry data infrequently. Receiving CTD command will reset the idle state.")
+var idleStateTime = flag.Int("idle-state-time", 120, "In seconds, Configure when the system will enter idle state. IDle state will send telemetry data infrequently. Receiving CTD command will reset the idle state.")
 var brokerURL = flag.String("broker-url", "tcp://localhost:1883", "Specify the MQTT broker URL to connect to (default \"tcp://localhost:1883\").")
 var brokerUsername = flag.String("broker-username", "", "Specify the MQTT client password to authenticate with.")
 var brokerPassword = flag.String("broker-password", "", "Specify the MQTT client username to authenticate with.")
@@ -61,9 +61,9 @@ func main() {
 	initializeClient()
 	getDeviceData()
 
-	defer func() { 
+	defer func() {
 		if telemetrySenderStarted {
-			stopTelemetrySender <- struct{}{} 
+			stopTelemetrySender <- struct{}{}
 		}
 	}()
 	defer mqttClient.Disconnect(1000)
@@ -100,14 +100,14 @@ func getDeviceData() {
 }
 
 func handleDeviceDataReceived(sourceClient mqtt.Client, message mqtt.Message) {
-	deviceDataReceived := DeviceData{}
+	deviceDataReceived := deviceData{}
 	if err := json.Unmarshal(message.Payload(), &deviceDataReceived); err != nil {
 		slog.Error("Error during payload unmarshal: ", err)
 		return
 	}
 
 	slog.Info("Connector Device Data received successfully", "data", deviceDataReceived)
-	if deviceDataReceived.DeviceID == deviceData.DeviceID && deviceDataReceived.TenantID == deviceData.TenantID {
+	if deviceDataReceived.DeviceID == currentDeviceData.DeviceID && deviceDataReceived.TenantID == currentDeviceData.TenantID {
 		slog.Debug("Skipping the same connector instance.")
 		return
 	}
@@ -115,14 +115,14 @@ func handleDeviceDataReceived(sourceClient mqtt.Client, message mqtt.Message) {
 	unsubscribeAllCTD()
 	subscribeForCTD(deviceDataReceived.DeviceID)
 	startSendingRandomlyGeneratedTelemetryData()
-	deviceData = deviceDataReceived
+	currentDeviceData = deviceDataReceived
 }
 
-func subscribeForCTD(deviceId string) {
+func subscribeForCTD(deviceID string) {
 	slog.Info("Subscribing for CTD commands: resetDTC & openTrunk...")
-	topicResetDTC := fmt.Sprintf("command//%s:Vehicle/req//resetDTC", deviceId)
+	topicResetDTC := fmt.Sprintf("command//%s:Vehicle/req//resetDTC", deviceID)
 	ctdSubscriptionTopics = append(ctdSubscriptionTopics, topicResetDTC)
-	topicOpenTrunk := fmt.Sprintf("command//%s:Vehicle/req//openTrunk", deviceId)
+	topicOpenTrunk := fmt.Sprintf("command//%s:Vehicle/req//openTrunk", deviceID)
 	ctdSubscriptionTopics = append(ctdSubscriptionTopics, topicOpenTrunk)
 
 	mqttClient.Subscribe(topicResetDTC, 1, handleResetDTC).Wait()
@@ -161,12 +161,12 @@ func handleOpenTrunk(sourceClient mqtt.Client, message mqtt.Message) {
 		slog.Info("wrong path received", "path", envelope.Path)
 		return
 	}
-	slog.Info("CTD Open Trunk received", "data", deviceData)
+	slog.Info("CTD Open Trunk received", "data", currentDeviceData)
 	controlTelemetrySender <- "openTrunk"
 }
 
-func publishCloudUpdate(feature dittoModel.Feature, featureName string, thingIdSuffix string) {
-	fullThingID := getFullThingId(thingIdSuffix)
+func publishCloudUpdate(feature dittoModel.Feature, featureName string, thingIDSuffix string) {
+	fullThingID := getFullThingID(thingIDSuffix)
 	command := things.NewCommand(dittoModel.NewNamespacedIDFrom(fullThingID)).
 		Twin().
 		Feature(featureName).
@@ -179,7 +179,7 @@ func publishCloudUpdate(feature dittoModel.Feature, featureName string, thingIdS
 		return
 	}
 
-	mqttClient.Publish(fmt.Sprintf("e/%s/%s", deviceData.TenantID, fullThingID), 1, false, payload).Wait()
+	mqttClient.Publish(fmt.Sprintf("e/%s/%s", currentDeviceData.TenantID, fullThingID), 1, false, payload).Wait()
 }
 
 func unsubscribeAllCTD() {
@@ -190,14 +190,14 @@ func unsubscribeAllCTD() {
 	ctdSubscriptionTopics = []string{}
 }
 
-func getFullThingId(thingIdSuffix string) string {
-	return deviceData.DeviceID + ":" + thingIdSuffix
+func getFullThingID(thingIDSuffix string) string {
+	return currentDeviceData.DeviceID + ":" + thingIDSuffix
 }
 
 func validateFlags() {
 	slog.Info(fmt.Sprintf("Trunk/Alarms State Time: %d seconds", *ctdEffectDelay))
 	slog.Info(fmt.Sprintf("Periodic Updates Delay: %d seconds", *periodicUpdatesDelay))
-	slog.Info(fmt.Sprintf("Idle State Detection after: %d seconds", *idleStateTime))
+	slog.Info(fmt.Sprintf("IDle State Detection after: %d seconds", *idleStateTime))
 	initialPeriodicUpdatesDelay = *periodicUpdatesDelay
 
 	if *periodicUpdatesDelay < 5 {
