@@ -58,17 +58,17 @@ golang/go (1.21)
 * Project: https://github.com/golang/go
 * Source:  https://github.com/golang/go/releases/tag/go1.21
 
-golang.org/x/net (0.8.0)
+golang.org/x/net (0.17.0)
 
 * License: BSD 3-Clause "New" or "Revised" License
 * Project: https://pkg.go.dev/golang.org/x/net
-* Source:  https://github.com/golang/net/tree/v0.8.0
+* Source:  https://github.com/golang/net/tree/v0.17.0
 
-golang.org/x/sync (0.1.0)
+golang.org/x/sync (0.4.0)
 
 * License: BSD 3-Clause "New" or "Revised" License
 * Project: https://pkg.go.dev/golang.org/x/sync
-* Source:  https://cs.opensource.google/go/x/sync/+/refs/tags/v0.1.0:
+* Source:  https://cs.opensource.google/go/x/sync/+/refs/tags/v0.4.0:
 
 
 
