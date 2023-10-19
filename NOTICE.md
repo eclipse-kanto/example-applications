@@ -68,7 +68,13 @@ golang.org/x/sync (0.4.0)
 
 * License: BSD 3-Clause "New" or "Revised" License
 * Project: https://pkg.go.dev/golang.org/x/sync
-* Source:  https://cs.opensource.google/go/x/sync/+/refs/tags/v0.4.0:
+* Source:  https://github.com/golang/sync/tree/v0.4.0
 
+## Cryptography
 
-
+Content may contain encryption software. The country in which you are currently
+may have restrictions on the import, possession, and use, and/or re-export to
+another country, of encryption software. BEFORE using any encryption software,
+please check the country's laws, regulations and policies concerning the import,
+possession, or use, and re-export of encryption software, to see if this is
+permitted.
