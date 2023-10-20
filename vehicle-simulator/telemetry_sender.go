@@ -70,7 +70,7 @@ func telemetrySender(stopTelemetrySender <-chan struct{}, controlChan <-chan str
 				telemetry.isTrunkOpen = true
 				processTrunkFeatureData()
 			default:
-				slog.Info("Unknown control signal: ", signal)
+				slog.Info("Unknown control signal received", "signal", signal)
 			}
 		}
 	}

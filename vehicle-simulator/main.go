@@ -146,7 +146,7 @@ func handleResetDTC(sourceClient mqtt.Client, message mqtt.Message) {
 		slog.Info("wrong path received", "path", envelope.Path)
 		return
 	}
-	slog.Info("CTD Reset DTC received:", envelope)
+	slog.Info("CTD Reset DTC received:", "envelope", envelope)
 
 	controlTelemetrySender <- "resetDTC"
 }
