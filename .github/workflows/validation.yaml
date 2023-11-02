@@ -1,0 +1,20 @@
+
+name: Validation
+
+on:
+  push:
+    branches: 
+      - "main"
+    paths:
+    - vehicle-simulator/**/*.go
+    - .github/**/*.yaml
+  pull_request:
+    paths:
+    - vehicle-simulator/**/*.go
+    - .github/**/*.yaml
+
+jobs:
+  call-go-validation:
+    uses: k-gostev/example-applications/.github/workflows/go-validation.yaml@main
+    with:
+      work-dir-path: ./vehicle-simulator
