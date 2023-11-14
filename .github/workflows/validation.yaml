@@ -15,6 +15,6 @@ on:
 
 jobs:
   call-go-validation:
-    uses: k-gostev/example-applications/.github/workflows/go-validation.yaml@main
+    uses: eclipse-kanto/example-applications/.github/workflows/go-validation.yaml@main
     with:
       work-dir-path: ./vehicle-simulator
