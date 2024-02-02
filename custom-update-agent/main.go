@@ -14,68 +14,28 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/eclipse-kanto/example-applications/custom-update-agent/updateagent"
 	"github.com/eclipse-kanto/example-applications/custom-update-agent/util"
 
 	"github.com/eclipse-kanto/update-manager/api"
+	"github.com/eclipse-kanto/update-manager/mqtt"
 )
-
-const (
-
-	// default local connection config
-	connectionBrokerURLDefault         = "tcp://localhost:1883"
-	connectionKeepAliveDefault         = "20s"
-	connectionDisconnectTimeoutDefault = "250ms"
-	connectionClientUsername           = ""
-	connectionClientPassword           = ""
-	connectTimeoutTimeoutDefault       = "30s"
-	acknowledgeTimeoutDefault          = "15s"
-	subscribeTimeoutDefault            = "15s"
-	unsubscribeTimeoutDefault          = "5s"
-
-	// default update agent config
-	updateAgentEnableDefault                 = false
-	updateAgentDomainDefault                 = "files"
-	updateAgentVerboseInventoryReportDefault = false
-)
-
-func parseDuration(duration string) time.Duration {
-	d, _ := time.ParseDuration(duration)
-	return d
-}
-
-func getDefaultCustomUpdateAgentOpts() []updateagent.FileUpdateAgentOpt {
-	updateAgentOpts := []updateagent.FileUpdateAgentOpt{}
-
-	updateAgentOpts = append(updateAgentOpts,
-		updateagent.WithDomainName(updateAgentDomainDefault),
-		updateagent.WithConnectionBroker(connectionBrokerURLDefault),
-		updateagent.WithConnectionKeepAlive(parseDuration(connectionKeepAliveDefault)),
-		updateagent.WithConnectionDisconnectTimeout(parseDuration(connectionDisconnectTimeoutDefault)),
-		updateagent.WithConnectionClientUsername(connectionClientUsername),
-		updateagent.WithConnectionClientPassword(connectionClientPassword),
-		updateagent.WithConnectionConnectTimeout(parseDuration(connectTimeoutTimeoutDefault)),
-		updateagent.WithConnectionAcknowledgeTimeout(parseDuration(acknowledgeTimeoutDefault)),
-		updateagent.WithConnectionSubscribeTimeout(parseDuration(subscribeTimeoutDefault)),
-		updateagent.WithConnectionUnsubscribeTimeout(parseDuration(unsubscribeTimeoutDefault)))
-
-	return updateAgentOpts
-}
 
 func main() {
-
-	//set logger level and output
 	logger := util.ConfigLogger(slog.LevelDebug, os.Stdout)
 	slog.SetDefault(&logger)
 
-	updateAgent, _ := updateagent.Init(getDefaultCustomUpdateAgentOpts())
+	fileDirPtr := flag.String("dir", "./fileagent", "the path to the directory where file agent will manage files")
+	flag.Parse()
+	updateagent.FileDirectory = *fileDirPtr
 
+	updateAgent, _ := updateagent.Init(*mqtt.NewDefaultConfig(), "files")
 	err := updateAgent.(api.UpdateAgent).Start(context.Background())
 	if err != nil {
 		slog.Error("could not start Update Agent service! got", "error", err)

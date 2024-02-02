@@ -1,0 +1,21 @@
+{
+    "container_name": "files-update-agent",
+    "image": {
+        "name": "<host>:<port>/<image>:<version>"
+    },
+    "host_config": {
+      "network_mode": "host"
+    },
+    "mount_points": [
+        {
+            "destination": "<certificates-directory>",
+            "source": "<certificates-directory>",
+            "propagation_mode": "rprivate"
+        },
+        {
+            "destination": "/bin/fileagent",
+            "source": "<files-directory>",
+            "propagation_mode": "shared"
+        }
+    ]
+}

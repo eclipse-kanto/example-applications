@@ -13,8 +13,6 @@
 package updateagent
 
 import (
-	"time"
-
 	"github.com/eclipse-kanto/update-manager/api"
 	"github.com/eclipse-kanto/update-manager/api/agent"
 	"github.com/eclipse-kanto/update-manager/mqtt"
@@ -23,26 +21,26 @@ import (
 func newUpdateAgent(
 	domainName string,
 	broker string,
-	keepAlive time.Duration,
-	disconnectTimeout time.Duration,
+	keepAlive string,
+	disconnectTimeout string,
 	clientUsername string,
 	clientPassword string,
-	connectTimeout time.Duration,
-	acknowledgeTimeout time.Duration,
-	subscribeTimeout time.Duration,
-	unsubscribeTimeout time.Duration,
+	connectTimeout string,
+	acknowledgeTimeout string,
+	subscribeTimeout string,
+	unsubscribeTimeout string,
 ) (api.UpdateAgent, error) {
 
-	mqttClient := mqtt.NewUpdateAgentClient(domainName, &mqtt.ConnectionConfig{
+	mqttClient, _ := mqtt.NewUpdateAgentClient(domainName, &mqtt.ConnectionConfig{
 		Broker:             broker,
-		KeepAlive:          keepAlive.Milliseconds(),
-		DisconnectTimeout:  disconnectTimeout.Milliseconds(),
+		KeepAlive:          keepAlive,
+		DisconnectTimeout:  disconnectTimeout,
 		Username:           clientUsername,
 		Password:           clientPassword,
-		ConnectTimeout:     connectTimeout.Milliseconds(),
-		AcknowledgeTimeout: acknowledgeTimeout.Milliseconds(),
-		SubscribeTimeout:   subscribeTimeout.Milliseconds(),
-		UnsubscribeTimeout: unsubscribeTimeout.Milliseconds(),
+		ConnectTimeout:     connectTimeout,
+		AcknowledgeTimeout: acknowledgeTimeout,
+		SubscribeTimeout:   subscribeTimeout,
+		UnsubscribeTimeout: unsubscribeTimeout,
 	})
 
 	return agent.NewUpdateAgent(mqttClient, newUpdateManager(domainName)), nil
@@ -56,22 +54,20 @@ func newUpdateManager(domainName string) api.UpdateManager {
 		createUpdateOperation: newOperation,
 	}
 }
-func Init(opts []FileUpdateAgentOpt) (interface{}, error) {
-	uaOpts := &updateAgentOpts{}
-	if err := applyOptsUpdateAgent(uaOpts, opts...); err != nil {
-		return nil, err
-	}
+
+// Init initializes a new Update Agent instance using given configuration and domain
+func Init(config mqtt.ConnectionConfig, domain string) (interface{}, error) {
 
 	return newUpdateAgent(
-		uaOpts.domainName,
-		uaOpts.broker,
-		uaOpts.keepAlive,
-		uaOpts.disconnectTimeout,
-		uaOpts.clientUsername,
-		uaOpts.clientPassword,
-		uaOpts.connectTimeout,
-		uaOpts.acknowledgeTimeout,
-		uaOpts.subscribeTimeout,
-		uaOpts.unsubscribeTimeout,
+		domain,
+		config.Broker,
+		config.KeepAlive,
+		config.DisconnectTimeout,
+		config.Username,
+		config.Password,
+		config.ConnectTimeout,
+		config.AcknowledgeTimeout,
+		config.SubscribeTimeout,
+		config.UnsubscribeTimeout,
 	)
 }

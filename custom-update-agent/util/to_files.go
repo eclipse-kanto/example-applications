@@ -17,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ToFiles converts a list of components into a list of files
 func ToFiles(components []*types.ComponentWithConfig) ([]*File, error) {
 	files := []*File{}
 	for _, component := range components {

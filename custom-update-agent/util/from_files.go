@@ -16,6 +16,7 @@ import (
 	"github.com/eclipse-kanto/update-manager/api/types"
 )
 
+// FromFiles turns a list of files into a list of software nodes
 func FromFiles(files []*File) []*types.SoftwareNode {
 	softwareNodes := make([]*types.SoftwareNode, len(files))
 	for i, file := range files {

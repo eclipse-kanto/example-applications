@@ -17,6 +17,7 @@ import (
 	"os"
 )
 
+// ConfigLogger is used for configuring the slog logger log level
 func ConfigLogger(level slog.Level, output *os.File) slog.Logger {
 	opts := slog.HandlerOptions{
 		Level: level,

@@ -14,6 +14,8 @@ package updateagent
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"sync"
@@ -32,6 +34,9 @@ const (
 	updateManagerName = "Eclipse Kanto File Update Agent"
 	parameterDomain   = "domain"
 )
+
+// FileDirectory points to the directory managed by the Files Update Agent
+var FileDirectory = ""
 
 type fileUpdateManager struct {
 	domainName string
@@ -151,10 +156,29 @@ func (updMgr *fileUpdateManager) asSoftwareNode() *types.SoftwareNode {
 
 func (updMgr *fileUpdateManager) getCurrentFiles() []*types.SoftwareNode {
 	files := []*util.File{}
-	propsFile, err := os.Open("./fileagent/state.props")
-	if err != nil {
+	propsFilePath := FileDirectory + "/state.props"
 
-		slog.Error("got error when checking current files", "error", err)
+	_, err := os.Stat(propsFilePath)
+
+	if errors.Is(err, os.ErrNotExist) {
+		entries, err := os.ReadDir(FileDirectory)
+		if err != nil {
+			slog.Error("got error checking current files", "error", err)
+			return nil
+
+		}
+		_, err = os.Create(propsFilePath)
+		if err != nil {
+			slog.Error(fmt.Sprintf("got error creating file [%s]", "state.props"), "error", err)
+
+		}
+		for _, entry := range entries {
+			addProperty(entry.Name(), "unknown")
+		}
+	}
+	propsFile, err := os.Open(propsFilePath)
+	if err != nil {
+		slog.Error("got error checking current files", "error", err)
 		return nil
 
 	}
@@ -165,13 +189,13 @@ func (updMgr *fileUpdateManager) getCurrentFiles() []*types.SoftwareNode {
 		slog.Error("got error when reading state.props file", "error", err)
 		return nil
 
-
-	} else {
-		for _, filename := range properties.Names() {
-			url, _ := properties.Get(filename)
-			files = append(files, &util.File{Name: filename, DownloadURL: url})
-		}
 	}
+
+	for _, filename := range properties.Names() {
+		url, _ := properties.Get(filename)
+		files = append(files, &util.File{Name: filename, DownloadURL: url})
+	}
+
 	return util.FromFiles(files)
 }
 

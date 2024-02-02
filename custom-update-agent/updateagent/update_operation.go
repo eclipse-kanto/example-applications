@@ -78,30 +78,51 @@ func (o *operation) GetActivityID() string {
 
 // Identify executes the IDENTIFYING phase, triggered with the full desired state for the domain
 func (o *operation) Identify() (bool, error) {
+	var err error
+	o.temporaryDirectory, err = os.MkdirTemp("", "file_agent")
+	if err != nil {
+		slog.Error("got error creating temporary directory", "error", err)
+		return false, err
+	}
+	o.downloadDirectory, err = os.MkdirTemp(o.temporaryDirectory, "file_agent_download")
+	if err != nil {
+		slog.Error("got error creating download directory", "error", err)
+		return false, err
+	}
+	o.backupDirectory, err = os.MkdirTemp(o.temporaryDirectory, "file_agent_backup")
+	if err != nil {
+		slog.Error("got error creating backup directory", "error", err)
+		return false, err
+	}
 
-	o.temporaryDirectory, _ = os.MkdirTemp("", "file_agent")
-	o.downloadDirectory, _ = os.MkdirTemp(o.temporaryDirectory, "file_agent_download")
-	o.backupDirectory, _ = os.MkdirTemp(o.temporaryDirectory, "file_agent_backup")
+	files, err := os.ReadDir(FileDirectory)
+	for _, f := range files {
+		filename := f.Name()
+		o.copyFile(filename, FileDirectory, o.backupDirectory)
+	}
+	if err != nil {
+		slog.Error("got error reading files directory", "error", err)
+		return false, err
+	}
 
 	currentFiles := []*util.File{}
-	propsFile, err := os.Open("./fileagent/state.props")
+	propsFile, err := os.Open(FileDirectory + "/state.props")
 	if err != nil {
-		slog.Error("got error when opening state.props file", err)
+		slog.Error("got error opening state.props file", "error", err)
 		return false, err
 
 	}
 
 	properties, err := props.Read(propsFile)
 	if err != nil {
-		slog.Error("got error reading state.props file", err)
+		slog.Error("got error reading state.props file", "error", err)
 		return false, err
 
-	} else {
+	}
 
-		for _, filename := range properties.Names() {
-			url, _ := properties.Get(filename)
-			currentFiles = append(currentFiles, &util.File{Name: filename, DownloadURL: url})
-		}
+	for _, filename := range properties.Names() {
+		url, _ := properties.Get(filename)
+		currentFiles = append(currentFiles, &util.File{Name: filename, DownloadURL: url})
 	}
 
 	currentFilesMap := util.AsNamedMap(currentFiles)
@@ -208,7 +229,7 @@ var commandHandlers = map[types.CommandType]struct {
 		commandHandler:         activate,
 	},
 	types.CommandCleanup: {
-		baselineFailureStatus: types.BaselineStatusCleanup,
+		baselineFailureStatus: types.BaselineStatusCleanupFailure,
 		commandHandler:        cleanup,
 	},
 }
@@ -278,9 +299,15 @@ func activate(o *operation, baselineAction *action) {
 
 	lastActionMessage := ""
 
-	propsFile, _ := os.OpenFile("./fileagent/state.props", os.O_RDWR, 0666)
+	propsFile, err := os.OpenFile(FileDirectory+"/state.props", os.O_RDWR, 0666)
+
+	if err != nil {
+		slog.Error("got error opening state.props file", "error", err)
+		return
+	}
+
 	propsFile.Truncate(0)
-	propsFile.Close()
+	defer propsFile.Close()
 
 	slog.Debug("activating - starting...")
 
@@ -307,17 +334,11 @@ func activate(o *operation, baselineAction *action) {
 			o.updateBaselineActionStatus(baselineAction, types.BaselineStatusActivating, action, types.ActionStatusActivating, action.feedbackAction.Message)
 			lastActionMessage = "Desired file added to state.props file."
 
-			propsFile, _ := os.OpenFile("./fileagent/state.props", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
-			w := bufio.NewWriter(propsFile)
-
-			newProperties := props.NewProperties()
-			newProperties.Set(action.desired.Name, action.desired.DownloadURL)
-			newProperties.Write(w)
-
-			err := w.Flush()
+			err := addProperty(action.desired.Name, action.desired.DownloadURL)
 
 			if err != nil {
-				slog.Error("got error when updating state.props file", "error", err)
+				lastActionErr = err
+				slog.Error("got error updating state.props file", "error", err)
 				return
 			}
 
@@ -338,6 +359,8 @@ func update(o *operation, baselineAction *action) {
 		if lastActionErr == nil {
 			o.updateBaselineActionStatus(baselineAction, types.BaselineStatusUpdateSuccess, lastAction, types.ActionStatusUpdateSuccess, lastActionMessage)
 		} else {
+			slog.Debug("last action error")
+			slog.Debug(lastActionErr.Error())
 			o.updateBaselineActionStatus(baselineAction, types.BaselineStatusUpdateFailure, lastAction, types.ActionStatusUpdateFailure, lastActionErr.Error())
 			rollback(o, baselineAction)
 		}
@@ -349,14 +372,13 @@ func update(o *operation, baselineAction *action) {
 	for _, action := range actions {
 
 		if lastAction != nil {
-
-			o.updateBaselineActionStatus(baselineAction, types.BaselineStatusUpdating, lastAction, types.ActionStatusUpdateSuccess, lastActionMessage)
+			lastAction.feedbackAction.Status = types.ActionStatusUpdateSuccess
+			lastAction.feedbackAction.Message = lastActionMessage
 		}
-
 		lastAction = action
 		if action.actionType == util.ActionAdd || action.actionType == util.ActionReplace {
 			o.updateBaselineActionStatus(baselineAction, types.BaselineStatusUpdating, action, types.ActionStatusUpdating, action.feedbackAction.Message)
-			if err := o.addFile(action.desired); err != nil {
+			if err := o.copyFile(action.desired.Name, o.downloadDirectory, FileDirectory); err != nil {
 				lastActionErr = err
 				return
 			}
@@ -379,14 +401,14 @@ func update(o *operation, baselineAction *action) {
 
 // Restores fileagent directory backup and removes all files in temporary directory
 func rollback(o *operation, baselineAction *action) {
-	var failure bool
 	var lastAction *fileAction
 	var lastActionMessage string
+	var lastActionErr error
 
 	slog.Debug("rollback - starting...")
 
 	defer func() {
-		if !failure {
+		if lastActionErr == nil {
 			o.updateBaselineActionStatus(baselineAction, types.BaselineStatusRollbackSuccess, lastAction, types.ActionStatusUpdateFailure, lastActionMessage)
 		} else {
 			o.updateBaselineActionStatus(baselineAction, types.BaselineStatusRollbackFailure, lastAction, types.ActionStatusUpdateFailure, lastActionMessage)
@@ -394,16 +416,31 @@ func rollback(o *operation, baselineAction *action) {
 		slog.Debug("rollback - done.")
 	}()
 
-	files, _ := os.ReadDir("./fileagent")
-	backupFiles, _ := os.ReadDir(o.backupDirectory)
+	files, err := os.ReadDir(FileDirectory)
+	if err != nil {
+		slog.Error("got error reading directory", "error", err)
+		lastActionErr = err
+		return
+	}
+	backupFiles, err := os.ReadDir(o.backupDirectory)
+	if err != nil {
+		slog.Error("got error opening directory", "error", err)
+		lastActionErr = err
+		return
+	}
 	if !reflect.DeepEqual(files, backupFiles) {
+		for _, entry := range files {
+			err = os.Remove(FileDirectory + "/" + entry.Name())
+			if err != nil {
+				slog.Error("got error removing file", "error", err)
+				lastActionErr = err
+				return
+			}
+		}
 
-		os.RemoveAll("./fileagnet")
-
-		files, _ := os.ReadDir("./fileagent")
 		for _, f := range files {
 			filename := f.Name()
-			os.Rename(o.backupDirectory+"/"+filename, "./fileagent/"+filename)
+			o.copyFile(filename, o.backupDirectory, FileDirectory)
 		}
 	}
 }
@@ -411,7 +448,6 @@ func rollback(o *operation, baselineAction *action) {
 // ActionRemove: removes the old file from fileagent directory.
 // ActionAdd and ActionReplace: removes temporary download directory.
 func cleanup(o *operation, baselineAction *action) {
-
 	slog.Debug("cleanup - starting...")
 
 	o.cleanupTemporaryFolders()
@@ -455,11 +491,24 @@ func hasStatus(where []types.StatusType, what types.StatusType) bool {
 	return false
 }
 
-func (o *operation) addFile(desired *util.File) error {
-
-	err := os.Rename(o.downloadDirectory+"/"+desired.Name, "./fileagent/"+desired.Name)
+func (o *operation) copyFile(filename string, sourcePath string, destinationPath string) error {
+	sourceFile, err := os.Open(sourcePath + "/" + filename)
 	if err != nil {
-		slog.Error(fmt.Sprintf("got error moving file [%s]", desired.Name), "error", err)
+		slog.Error(fmt.Sprintf("got error opening file [%s]", filename), "error", err)
+		return err
+
+	}
+	defer sourceFile.Close()
+	destinationFile, err := os.Create(destinationPath + "/" + filename)
+	if err != nil {
+		slog.Error(fmt.Sprintf("got error creating file [%s]", filename), "error", err)
+		return err
+	}
+	defer destinationFile.Close()
+	_, err = io.Copy(destinationFile, sourceFile)
+	if err != nil {
+		slog.Error(fmt.Sprintf("got error copying file [%s] to [%s]", filename, FileDirectory), "error", err)
+		return err
 
 	}
 	return err
@@ -472,14 +521,15 @@ func (o *operation) cleanupTemporaryFolders() error {
 	}
 	return err
 }
+
 func (o *operation) removeFile(desired *util.File) error {
-	err := os.Remove("./fileagent/" + desired.Name)
+	err := os.Remove(FileDirectory + "/" + desired.Name)
 	if err != nil {
 		slog.Error(fmt.Sprintf("got error removing file [%s]", desired.Name), "error", err)
-
 	}
 	return err
 }
+
 func (o *operation) downloadFile(desired *util.File) error {
 
 	resp, err := http.Get(desired.DownloadURL)
@@ -504,6 +554,25 @@ func (o *operation) downloadFile(desired *util.File) error {
 	}
 
 	return nil
+}
+
+func addProperty(key string, value string) error {
+	propsFilePath := FileDirectory + "/state.props"
+	propsFile, err := os.OpenFile(propsFilePath, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	if err != nil {
+		slog.Debug(fmt.Sprintf("could not open file [%s]", propsFilePath), "error", err)
+		return err
+	}
+	defer propsFile.Close()
+
+	w := bufio.NewWriter(propsFile)
+
+	newProperties := props.NewProperties()
+	newProperties.Set(key, value)
+	newProperties.Write(w)
+
+	err = w.Flush()
+	return err
 }
 
 func asStatusString(what []types.StatusType) string {
