@@ -54,8 +54,7 @@ You must have an installed and working instance of:
 * Eclipse Kanto Update Manager
 * Eclipse Kanto Container Management
 
-
-Regardless if you are running the update agent as a standard or containerized application, you will need to add the following to the update manager configuration, located at `/etc/update-manager/config.json`:
+Regardless if you are running the update agent as a standard or containerized application, you will need to add the following to the update manager configuration, located at `/etc/kanto-update-manager/config.json`:
 
 ```json
 {

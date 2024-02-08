@@ -31,23 +31,24 @@ func main() {
 	logger := util.ConfigLogger(slog.LevelDebug, os.Stdout)
 	slog.SetDefault(&logger)
 
-	fileDirPtr := flag.String("dir", "./fileagent", "the path to the directory where file agent will manage files")
+	flag.StringVar(&updateagent.FileDirectory, "dir", "./fileagent", "the path to the directory where file agent will manage files")
 	flag.Parse()
-	updateagent.FileDirectory = *fileDirPtr
 
-	updateAgent, _ := updateagent.Init(*mqtt.NewDefaultConfig(), "files")
-	err := updateAgent.(api.UpdateAgent).Start(context.Background())
+	updateAgent, err := updateagent.Init(mqtt.NewDefaultConfig(), "files")
 	if err != nil {
-		slog.Error("could not start Update Agent service! got", "error", err)
-	} else {
-		slog.Info("successfully started Update Agent service")
+		slog.Error("could not initialize an Update Agent service! got", "error", err)
+		os.Exit(1)
 	}
+	if err := updateAgent.(api.UpdateAgent).Start(context.Background()); err != nil {
+		slog.Error("could not start Update Agent service! got", "error", err)
+		os.Exit(2)
+	}
+	slog.Info("successfully started Update Agent service")
 
 	var signalChan = make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGHUP)
 
 	sig := <-signalChan
-	slog.Info("Exiting!, recieved", "signal", sig)
+	slog.Info("Exiting!, received", "signal", sig)
 	updateAgent.(api.UpdateAgent).Stop()
-
 }

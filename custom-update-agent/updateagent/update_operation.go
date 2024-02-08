@@ -110,14 +110,12 @@ func (o *operation) Identify() (bool, error) {
 	if err != nil {
 		slog.Error("got error opening state.props file", "error", err)
 		return false, err
-
 	}
 
 	properties, err := props.Read(propsFile)
 	if err != nil {
 		slog.Error("got error reading state.props file", "error", err)
 		return false, err
-
 	}
 
 	for _, filename := range properties.Names() {
@@ -176,9 +174,7 @@ func (o *operation) newRemoveActions(toBeRemoved map[string]*util.File) []*fileA
 	removeActions := []*fileAction{}
 	message := util.GetActionMessage(util.ActionRemove)
 	for _, current := range toBeRemoved {
-
 		slog.Debug(fmt.Sprintf("[%s] %s", current.Name, message))
-
 		removeActions = append(removeActions, &fileAction{
 			desired: nil,
 			current: current,
@@ -199,10 +195,8 @@ func (o *operation) newRemoveActions(toBeRemoved map[string]*util.File) []*fileA
 func (o *operation) Execute(command types.CommandType, baseline string) {
 	commandHandler, action := o.getCommandHandler(baseline, command)
 	if action == nil {
-
 		return
 	}
-
 	commandHandler(o, action)
 }
 
@@ -330,18 +324,13 @@ func activate(o *operation, baselineAction *action) {
 
 		lastAction = action
 		if action.actionType == util.ActionAdd || action.actionType == util.ActionReplace || action.actionType == util.ActionNone {
-
 			o.updateBaselineActionStatus(baselineAction, types.BaselineStatusActivating, action, types.ActionStatusActivating, action.feedbackAction.Message)
 			lastActionMessage = "Desired file added to state.props file."
-
-			err := addProperty(action.desired.Name, action.desired.DownloadURL)
-
-			if err != nil {
+			if err := addProperty(action.desired.Name, action.desired.DownloadURL); err != nil {
 				lastActionErr = err
 				slog.Error("got error updating state.props file", "error", err)
 				return
 			}
-
 		} else {
 			lastAction = nil
 		}
@@ -370,7 +359,6 @@ func update(o *operation, baselineAction *action) {
 
 	actions := baselineAction.actions
 	for _, action := range actions {
-
 		if lastAction != nil {
 			lastAction.feedbackAction.Status = types.ActionStatusUpdateSuccess
 			lastAction.feedbackAction.Message = lastActionMessage
@@ -384,15 +372,11 @@ func update(o *operation, baselineAction *action) {
 			}
 			lastActionMessage = "File added to directory."
 		} else if action.actionType == util.ActionRemove {
-			err := o.removeFile(action.current)
-
-			if err != nil {
+			if err := o.removeFile(action.current); err != nil {
 				lastActionErr = err
 				return
-
 			}
 			lastActionMessage = "File removed from directory."
-
 		} else {
 			lastActionMessage = action.feedbackAction.Message
 		}
@@ -496,7 +480,6 @@ func (o *operation) copyFile(filename string, sourcePath string, destinationPath
 	if err != nil {
 		slog.Error(fmt.Sprintf("got error opening file [%s]", filename), "error", err)
 		return err
-
 	}
 	defer sourceFile.Close()
 	destinationFile, err := os.Create(destinationPath + "/" + filename)
@@ -531,7 +514,6 @@ func (o *operation) removeFile(desired *util.File) error {
 }
 
 func (o *operation) downloadFile(desired *util.File) error {
-
 	resp, err := http.Get(desired.DownloadURL)
 	if err != nil {
 		slog.Debug(fmt.Sprintf("could not download file from url [%s]", desired.DownloadURL), "error", err)
@@ -543,7 +525,6 @@ func (o *operation) downloadFile(desired *util.File) error {
 	if err != nil {
 		slog.Debug(fmt.Sprintf("could not create file [%s]", desired.Name), "error", err)
 		return err
-
 	}
 	defer out.Close()
 

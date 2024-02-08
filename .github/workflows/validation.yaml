@@ -7,14 +7,20 @@ on:
       - "main"
     paths:
     - vehicle-simulator/**/*.go
+    - custom-update-agent/**/*.go
     - .github/**/*.yaml
   pull_request:
     paths:
     - vehicle-simulator/**/*.go
+    - custom-update-agent/**/*.go
     - .github/**/*.yaml
 
 jobs:
-  call-go-validation:
+  call-go-validation-vs:
     uses: eclipse-kanto/example-applications/.github/workflows/go-validation.yaml@main
     with:
       work-dir-path: ./vehicle-simulator
+  call-go-validation-cua:
+    uses: eclipse-kanto/example-applications/.github/workflows/go-validation.yaml@main
+    with:
+      work-dir-path: ./custom-update-agent

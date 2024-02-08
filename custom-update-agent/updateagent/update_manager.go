@@ -49,7 +49,6 @@ type fileUpdateManager struct {
 
 // Name returns the name of this update manager, e.g. "files".
 func (updMgr *fileUpdateManager) Name() string {
-
 	return updMgr.domainName
 }
 
@@ -165,12 +164,10 @@ func (updMgr *fileUpdateManager) getCurrentFiles() []*types.SoftwareNode {
 		if err != nil {
 			slog.Error("got error checking current files", "error", err)
 			return nil
-
 		}
 		_, err = os.Create(propsFilePath)
 		if err != nil {
 			slog.Error(fmt.Sprintf("got error creating file [%s]", "state.props"), "error", err)
-
 		}
 		for _, entry := range entries {
 			addProperty(entry.Name(), "unknown")
@@ -180,15 +177,12 @@ func (updMgr *fileUpdateManager) getCurrentFiles() []*types.SoftwareNode {
 	if err != nil {
 		slog.Error("got error checking current files", "error", err)
 		return nil
-
 	}
 
 	properties, err := props.Read(propsFile)
 	if err != nil {
-
 		slog.Error("got error when reading state.props file", "error", err)
 		return nil
-
 	}
 
 	for _, filename := range properties.Names() {
@@ -206,7 +200,7 @@ func (updMgr *fileUpdateManager) Dispose() error {
 
 // WatchEvents subscribes for events that update the current state inventory
 func (updMgr *fileUpdateManager) WatchEvents(ctx context.Context) {
-	// no container events handled yet - current state inventory reported only on initial start or explicit get request
+	// no events handled yet - current state inventory reported only on initial start or explicit get request
 }
 
 // SetCallback sets the callback instance that is used for desired state feedback / current state notifications.

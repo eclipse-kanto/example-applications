@@ -31,10 +31,14 @@ func ToFiles(components []*types.ComponentWithConfig) ([]*File, error) {
 }
 
 func toFile(component *types.ComponentWithConfig) (*File, error) {
-	file := &File{
-		Name:        component.Config[0].Value,
-		DownloadURL: component.Config[1].Value,
+	file := &File{}
+	for _, kvPair := range component.Config {
+		if kvPair.Key == "file_name" {
+			file.Name = kvPair.Value
+		}
+		if kvPair.Key == "download_url" {
+			file.DownloadURL = kvPair.Value
+		}
 	}
-
 	return file, nil
 }
