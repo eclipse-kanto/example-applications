@@ -1,0 +1,11 @@
+[Unit]
+Description=Eclipse Kanto - Files Update Agent
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/custom-update-agent --dir "<files-directory>"
+Restart=always
+TimeoutSec=300
+
+[Install]
+WantedBy=multi-user.target
