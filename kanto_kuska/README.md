@@ -27,3 +27,13 @@ Running the Simulation:
 
     Configure MQTT settings (host, port, username, password) in the code.
     Run the script: python edge_client.py
+
+
+
+Note:
+This is a mock implementation for demonstration purposes.
+Real-world implementations may involve additional functionalities and security considerations 
+
+
+
+
