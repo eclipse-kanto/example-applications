@@ -1,1 +1,3 @@
 paho-mqtt
+ditto.client
+kuksa_client.grpc

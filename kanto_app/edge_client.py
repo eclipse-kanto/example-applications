@@ -1,170 +1,64 @@
-import time
 import json
-import argparse
 import paho.mqtt.client as mqtt
+from kuksa_client.grpc import VSSClient
+from ditto.client import Client
+from ditto.model.feature import Feature
+from ditto.model.namespaced_id import NamespacedID
+from ditto.protocol.things.commands import Command
 
-class EdgeDeviceInfo:
-    def __init__(self):
-        self.deviceId = None
-        self.tenantId = None
-        self.policyId = None
+# Configuration constants
+MQTT_HOST = "localhost"
+MQTT_PORT = 1883
+MQTT_USERNAME = "<username>"
+MQTT_PASSWORD = "<password>"
+MQTT_PUBLISH_TOPIC = "test/data"
+THING_NAMESPACE = "test.ns"
+THING_NAME = "test-name"
+FEATURE_ID = "MyFeature"
 
-    def unmarshal_json(self, payload):
-        data = json.loads(payload)
-        self.deviceId = data.get("deviceId")
-        self.tenantId = data.get("tenantId")
-        self.policyId = data.get("policyId")
+def connect_mqtt_client():
+    """Initialize and connect the MQTT client."""
+    mqtt_client = mqtt.Client()
+    mqtt_client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
+    mqtt_client.connect(MQTT_HOST, MQTT_PORT)
+    mqtt_client.loop_start()
+    return mqtt_client
 
-class MockDittoClient:
-    def __init__(self):
-        self.device_info = None
-        self.features = {}
+def create_ditto_client():
+    """Initialize and return a Ditto client instance."""
+    return Client()
 
-    def send(self, cmd_envelope):
-        feature_id, property_path, value = cmd_envelope.split(":")
-        self.features[f"{feature_id}/{property_path}"] = value
-        print(f"Mock Ditto: Updated feature '{feature_id}' property '{property_path}' with value '{value}'")
+def handle_vehicle_speed_updates():
+    """Subscribe to vehicle speed updates and publish commands to Ditto."""
+    ditto_client = create_ditto_client()
+    mqtt_client = connect_mqtt_client()
 
-class MockKuksaClient:
-    def __init__(self):
-        self.values = {
-            'Altitude': 100,
-            'Latitude': 17.3850,
-            'Longitude': 78.4667,
-            'Speed': 50
-        }
-        self.subscriptions = {}
-        self.update_interval = 1  # Seconds between simulated data updates
+    try:
+        with VSSClient('127.0.0.1', 55555) as client:
+            for updates in client.subscribe_current_values(['Vehicle.Speed']):
+                speed = updates['Vehicle.Speed'].value
+                print(f"Received updated speed: {speed}")
 
-    def subscribe(self, topic, callback):
-        print(f"Mock Kuksa subscribed to topic: {topic}")
-        self.subscriptions[topic] = callback
-        callback(self.values[topic])
+                # Create a new feature instance with the vehicle speed as property
+                feature_to_add = Feature().with_properties(speed=speed)
 
-    def simulate_updates(self):
-        while True:
-            # Simulate changes in some values
-            self.values['Speed'] += 2
-            # Update subscribed callbacks
-            for topic, callback in self.subscriptions.items():
-                callback(self.values[topic])
-            time.sleep(self.update_interval)
+                # Define the thing ID and feature ID in Ditto
+                thing_id = NamespacedID().from_string(f"{THING_NAMESPACE}:{THING_NAME}")
 
-class EdgeClient:
-    def __init__(self, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
-        self.ditto_client = MockDittoClient()
-        self.kuksa_client = MockKuksaClient()
-        self.device_info = None
+                # Create a command to modify the feature in Ditto
+                command = Command(thing_id).feature(FEATURE_ID).modify(feature_to_add.to_ditto_dict())
 
-        # MQTT settings
-        self.mqtt_host = mqtt_host
-        self.mqtt_port = mqtt_port
-        self.mqtt_username = mqtt_username
-        self.mqtt_password = mqtt_password
-        self.mqtt_client = mqtt.Client()
+                # Send the command via MQTT using Ditto client
+                envelope = command.envelope(correlation_id="speed-correlation-id", response_required=False)
+                ditto_client.send(envelope)
+                mqtt_client.publish(MQTT_PUBLISH_TOPIC, json.dumps(envelope.to_ditto_dict()))
 
-        # Set MQTT username and password if provided
-        if mqtt_username and mqtt_password:
-            self.mqtt_client.username_pw_set(mqtt_username, mqtt_password)
-
-        # Subscribe to specified MQTT topics
-        self.subscribe_to_topics()
-
-    def subscribe_to_topics(self):
-        def on_message(client, userdata, message):
-            topic = message.topic
-            payload = json.loads(message.payload)
-
-            # Update internal state based on received topic and payload
-            if topic in self.kuksa_client.values:
-                self.kuksa_client.values[topic] = payload
-                self.handle_kuksa_update(topic, payload)
-
-            print(f"Received message on topic '{topic}': {payload}")
-
-        self.mqtt_client.on_message = on_message
-        self.mqtt_client.connect(self.mqtt_host, self.mqtt_port)
-        self.mqtt_client.loop_start()
-
-        # Subscribe to Kuksa data topics
-        topics_to_subscribe = [
-            "Altitude",
-            "Latitude",
-            "Longitude",
-            "Speed"
-        ]
-        for topic in topics_to_subscribe:
-            self.mqtt_client.subscribe(topic)
-
-    def handle_kuksa_update(self, topic, value):
-        # Handle Kuksa data signal (simplified)
-        print(f"Received Kuksa data signal - Topic: {topic}, Value: {value}")
-        # Trigger Ditto data update
-        self.update_ditto_feature(topic, value)
-
-    def update_ditto_feature(self, property_path, value):
-        # Update Ditto feature with the new value
-        feature_id = "VSS"  # Example feature ID (Vehicle Speed and Location)
-        cmd_envelope = f"{feature_id}:{property_path}:{value}"
-        self.ditto_client.send(cmd_envelope)
-
-    def start(self):
-        try:
-            # Simulate device info retrieval
-            self.device_info = EdgeDeviceInfo()
-            self.device_info.unmarshal_json('{"deviceId": "123", "tenantId": "456", "policyId": "789"}')
-
-            # Add VSS feature to mock Ditto client
-            self.add_vss_feature()
-
-            # Simulate Kuksa data updates
-            self.kuksa_client.simulate_updates()
-
-        except Exception as e:
-            print(f"Error occurred during start: {e}")
-
-    def add_vss_feature(self):
-        # Add VSS feature to mock Ditto client (simplified)
-        feature_id = "VSS"
-        feature_data = {
-            "description": "Vehicle Speed and Location",
-            "properties": self.kuksa_client.values.copy()  # Include a copy of Kuksa values in feature data
-        }
-        self.ditto_client.features[feature_id] = feature_data
-        print(f"Mock Ditto: Added feature '{feature_id}' with properties")
-        print(feature_data)
-
-    def stop(self):
-        try:
-            if self.mqtt_client.is_connected():
-                self.mqtt_client.loop_stop()
-                self.mqtt_client.disconnect()
-                print("MQTT client stopped and disconnected.")
-            else:
-                print("MQTT client is not connected.")
-        except Exception as e:
-            print(f"Error occurred during stop: {e}")
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="Edge Client with configurable MQTT settings")
-    parser.add_argument("--host", type=str, default="localhost", help="MQTT broker host")
-    parser.add_argument("--port", type=int, default=1883, help="MQTT broker port")
-    parser.add_argument("--username", type=str, default=None, help="MQTT username")
-    parser.add_argument("--password", type=str, default=None, help="MQTT password")
-    return parser.parse_args()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        mqtt_client.disconnect()
+        mqtt_client.loop_stop()
+        ditto_client.disconnect()
 
 if __name__ == "__main__":
-    # Parse command-line arguments
-    args = parse_args()
-
-    # Create EdgeClient instance with MQTT credentials from command-line arguments
-    edge_client = EdgeClient(args.host, args.port, args.username, args.password)
-    
-    try:
-
-        edge_client.start()
-
-    
-    finally:
-       
-        edge_client.stop()
+    handle_vehicle_speed_updates()
