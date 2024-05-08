@@ -1,12 +1,16 @@
-name: Build
+name: custom-update-agent
 
 on:
-  push:
+  [push, pull_request]:
     paths:
-      - ".github/workflows/build.yml"
+      - ".github/workflows/docker-build-custom-update-agent.yml"
       - "custom-update-agent/**"
     branches:
       - "main"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/custom-update-agent
 
 jobs:
   build-custom-update-agent:
@@ -28,12 +32,21 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-          
+      
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
+          push: ${{ github.event_name != 'pull_request' }}
           context: ./custom-update-agent
           file: ./custom-update-agent/Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm/v7
-          push: true
-          tags: ghcr.io/${{ github.repository }}/custom-update-agent:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

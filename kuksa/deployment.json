@@ -1,0 +1,19 @@
+{
+    "container_name": "vss",
+    "image": {
+        "name": "<image:version>"
+    },
+    "config": {
+      "cmd": [
+        "python",
+        "/app/edge_client.py",
+        "--host=ctrhost"
+      ]
+    },
+    "host_config": {
+      "extra_hosts": [
+          "ctrhost:host_ip"
+      ]
+    }
+  }
+  
