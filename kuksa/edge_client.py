@@ -28,7 +28,7 @@ FEATURE_ID_VSS = "VSS"
 EDGE_CLOUD_CONNECTOR_TOPIC_DEV_INFO = "edge/thing/response"
 EDGE_CLOUD_CONNECTOR_TOPIC_DEV_INFO_REQUEST = "edge/thing/request"
 
-DATA_PATHS = "Vehicle.CurrentLocation.Altitude,Vehicle.CurrentLocation.Latitude,Vehicle.CurrentLocation.Longitude,Vehicle.Speed"
+VSS_PATHS = "Vehicle.CurrentLocation.Altitude,Vehicle.CurrentLocation.Latitude,Vehicle.CurrentLocation.Longitude,Vehicle.Speed"
 
 class EdgeClient:
     def __init__(self, host, port, paths):
@@ -36,7 +36,7 @@ class EdgeClient:
         self.kuksa_client = KuksaClientThread(config={'ip':host,'protocol': 'grpc', 'port': port, 'insecure': True})
         self.device_info = None
         self.ditto_client = None
-        self.data_paths = paths
+        self.vss_paths = paths
 
     def on_connect(self, client:mqtt.Client, obj, flags, rc):
         print("Connected with result code:", str(rc))
@@ -65,8 +65,8 @@ class EdgeClient:
             print(ex)
 
     def subscribe(self):
-        print('Subscribing to VSS data paths:', self.data_paths)
-        self.kuksa_client.subscribeMultiple(self.data_paths, self.on_kuksa_signal)
+        print('Subscribing to VSS data paths:', self.vss_paths)
+        self.kuksa_client.subscribeMultiple(self.vss_paths, self.on_kuksa_signal)
 
     def add_vss_feature(self):
         # add the vss feature
@@ -108,17 +108,17 @@ def parse_args():
     parser.add_argument("--mqtt_password", type=str, default=None, help="MQTT password")
     parser.add_argument("--kuksa_host", type=str, default="localhost", help="Kuksa Databroker host")
     parser.add_argument("--kuksa_port", type=int, default=55555, help="Kuksa Databroker port")
-    parser.add_argument("--paths", type=str, default=DATA_PATHS, help="Comma separated VSS data paths to subscribe to")
+    parser.add_argument("--vss_paths", type=str, default=VSS_PATHS, help="Comma separated VSS data paths to subscribe to")
     return parser.parse_args()
 
 if __name__ == "__main__":
     args = parse_args()
     
     # Set VSS data paths to subscribe to
-    args.paths = [s.strip() for s in args.paths.split(",")]
+    args.vss_paths = [s.strip() for s in args.vss_paths.split(",")]
 
     paho_client = mqtt.Client()
-    edge_client = EdgeClient(args.kuksa_host, args.kuksa_port, args.paths)
+    edge_client = EdgeClient(args.kuksa_host, args.kuksa_port, args.vss_paths)
     
     # Set MQTT username and password if provided
     if args.mqtt_username and args.mqtt_password:

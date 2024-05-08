@@ -12,28 +12,27 @@ This is an example application that connects to [Eclipse Kuksa Databroker](https
 You must have an installed and working instance of:
 * Eclipse Kanto Container Management
 * Eclipse Kanto AWS Connector that is connected to a Thing in AWS IoT Core
-* [Python 3](https://wiki.python.org/moin/BeginnersGuide/Download) and [pip3](https://pip.pypa.io/en/stable/installation/#)
 
 ## Steps
-Create and start Kuksa Databroker
+Create  container and start the Kuksa Databroker
 ```shell
-kanto-cm create --network=host --name=server ghcr.io/eclipse-kuksa/kuksa-databroker:0.4.4 --insecure
-kanto-cm start --name=server
+kanto-cm create --name=databroker ghcr.io/eclipse-kuksa/kuksa-databroker:0.4.4 --insecure
+kanto-cm start --name=databroker
 ```
 
-Create and start Kuksa Databroker CLI in a dedicated terminal, where VSS data will be fed at later point
+Create container and start the Kuksa Databroker CLI in a dedicated terminal, where VSS data will be fed at later point
 ```shell
-kanto-cm create --i --t --network=host --name=client ghcr.io/eclipse-kuksa/kuksa-databroker-cli:0.4.4 --server localhost:55555
-kanto-cm start --i --a --name=client
+kanto-cm create -name=cli --i --t --hosts=databroker:container_databroker-host --rp=no ghcr.io/eclipse-kuksa/kuksa-databroker-cli:0.4.4  --server=databroker:55555
+kanto-cm start --i --a --name=cli
 ```
 
-Install required Python dependencies and run the script
+Create container and start the Kuksa Example Application
 ```shell
-pip3 install -r requirements.txt
-python3 ./edge_client.py 
+sudo kanto-cm create -f ./deployment.json
+kanto-cm start --name=vss
 ```
 
-There should be a new device shadow names 'VSS' in your AWS IoT Thing. With the VSS data from the Kuksa Databroker server displayed as a shadow state
+There should be a new device shadow named 'VSS' in your AWS IoT Thing. With the VSS data from the Kuksa Databroker displayed as a shadow state
 ```json
 {
   "state": {
@@ -81,7 +80,7 @@ There should be a new device shadow names 'VSS' in your AWS IoT Thing. With the 
 }
 ```
 
-If you go back to the Kuksa Databroker CLI terminal, you can feed new data to the Kuksa Databroker server
+You can go back to the Kuksa Databroker CLI terminal and feed new data to the Kuksa Databroker
 ```shell
 feed Vehicle.Speed 120
 feed Vehicle.CurrentLocation.Altitude 640
@@ -89,7 +88,7 @@ feed Vehicle.CurrentLocation.Latitude 43
 feed Vehicle.CurrentLocation.Longitude 25
 ```
 
-The python script is subscribed for changes of this VSS data paths and the values are updated in the VSS shadow as well
+The Kuksa Example Application is subscribed for changes of this VSS data paths and the values are updated in the VSS shadow as well
 ```json
 {
   "state": {
@@ -113,7 +112,13 @@ The python script is subscribed for changes of this VSS data paths and the value
 ```
 
 # Control
-The python scripts allows configuring of connection settings for the local MQTT broker and the Kuksa Databroker and also which VSS date paths to be followed. The allowed arguments and their default values could be listed with
-```shell
-python3 ./edge_client.py --help
-```
+The Kuksa Example Application is based on python scripts that allows configuring of connection settings for the local MQTT broker and the Kuksa Databroker and also which VSS data paths to be followed. Allowed arguments and their default values:
+| Argument     | Type | Default |     Description     |
+| --------     | ---- | ------- |     -----------     |
+|mqtt_host     |string|localhost|MQTT broker host     |
+|mqtt_port     |int   |1883     |MQTT broker port     |
+|mqtt_username |string|         |MQTT username        |
+|mqtt_password |string|         |MQTT password        |
+|kuksa_host    |string|localhost|Kuksa Databroker host|
+|kuksa_port    |int   |55555    |Kuksa Databroker port|
+|vss_paths     |string|Vehicle.CurrentLocation.Altitude,Vehicle.CurrentLocation.Latitude,Vehicle.CurrentLocation.Longitude,Vehicle.Speed| Comma separated VSS data paths to subscribe to |
