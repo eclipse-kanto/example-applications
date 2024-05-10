@@ -22,13 +22,13 @@ kanto-cm start --name=databroker
 
 Create container and start the Kuksa Databroker CLI in a dedicated terminal, where VSS data will be fed at later point
 ```shell
-kanto-cm create -name=cli --i --t --hosts=databroker:container_databroker-host --rp=no ghcr.io/eclipse-kuksa/kuksa-databroker-cli:0.4.4  --server=databroker:55555
+kanto-cm create --name=cli --i --t --hosts=databroker:container_databroker-host --rp=no ghcr.io/eclipse-kuksa/kuksa-databroker-cli:0.4.4  --server=databroker:55555
 kanto-cm start --i --a --name=cli
 ```
 
 Create container and start the Kuksa Example Application
 ```shell
-sudo kanto-cm create -f ./deployment.json
+kanto-cm create -f ./deployment.json
 kanto-cm start --name=vss
 ```
 
