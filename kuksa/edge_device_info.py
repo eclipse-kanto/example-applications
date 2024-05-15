@@ -10,8 +10,10 @@
 #
 # SPDX-License-IDentifier: EPL-2.0 OR Apache-2.0
 
-from ditto.model.namespaced_id import NamespacedID
 import json
+import logging
+
+from ditto.model.namespaced_id import NamespacedID
 
 DEVICE_ID_KEY = "deviceId"
 TENANT_ID_KEY = "tenantId"
@@ -25,9 +27,9 @@ class EdgeDeviceInfo:
         self.deviceId = None
         self.tenantId = None
         self.policyId = None
+        self.log = logging.getLogger('EDGE_DEVICE')
 
         for k, v in kwargs.items():
-            print(k)
             if k in ALLOWED_KEYS:
                 self.__setattr__(k, v)
 
@@ -47,5 +49,5 @@ class EdgeDeviceInfo:
             if k == TENANT_ID_KEY:
                 self.tenantId = v
 
-        print("Edge Device Info:", envelope_dict)
+        self.log.info(f'Device info - {envelope_dict}')
         return 0

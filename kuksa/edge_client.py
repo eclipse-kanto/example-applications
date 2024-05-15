@@ -11,6 +11,7 @@
 # SPDX-License-IDentifier: EPL-2.0 OR Apache-2.0
 
 import argparse
+import logging
 import signal
 import sys
 
@@ -37,9 +38,10 @@ class EdgeClient:
         self.device_info = None
         self.ditto_client = None
         self.vss_paths = paths
+        self.log = logging.getLogger('EDGE_CLIENT')
 
     def on_connect(self, client:mqtt.Client, obj, flags, rc):
-        print("Connected with result code:", str(rc))
+        self.log.info("Connected with result code - " + str(rc))
         self.mqtt_client = client
         # init ditto client
         self.ditto_client = Client(paho_client=self.mqtt_client)
@@ -59,13 +61,13 @@ class EdgeClient:
                     self.add_vss_feature()
                     self.subscribe()
                 else:
-                    print('Device info already available - discarding message')
+                    self.log.info('Device info already available - discarding message')
                 return
         except Exception as ex:
-            print(ex)
+            self.log.error(ex)
 
     def subscribe(self):
-        print('Subscribing to VSS data paths:', self.vss_paths)
+        self.log.info(f'Subscribing to VSS data paths - {self.vss_paths}')
         self.kuksa_client.subscribeMultiple(self.vss_paths, self.on_kuksa_signal)
 
     def add_vss_feature(self):
@@ -84,13 +86,13 @@ class EdgeClient:
             self.ditto_client.send(cmd_envelope)
 
     def on_kuksa_signal(self, message):
-        print('Received signal:', message)
+        self.log.info(f'Received signal - {message}')
         if self.device_info is None:
-            print('No device info is initialized to process VSS data')
+            self.log.info("No device info is initialized to process VSS data")
             return
         processed = process_signal(message)
         # update property
-        print('Updating VSS properties:', processed)
+        self.log.info(f'Updating VSS properties - {processed}')
         for key, val in processed.items():
             cmd = Command(self.device_info.deviceId).feature_property(FEATURE_ID_VSS, key.replace('.','/')).modify(val)
             cmd_envelope = cmd.envelope(response_required=False, content_type="application/json")
@@ -109,10 +111,15 @@ def parse_args():
     parser.add_argument("--kuksa_host", type=str, default="localhost", help="Kuksa Databroker host")
     parser.add_argument("--kuksa_port", type=int, default=55555, help="Kuksa Databroker port")
     parser.add_argument("--vss_paths", type=str, default=VSS_PATHS, help="Comma separated VSS data paths to subscribe to")
+    parser.add_argument("--log_level", type=str, default='info', help="Logging level", choices=list(map(str.lower,logging._nameToLevel.keys())))
     return parser.parse_args()
 
 if __name__ == "__main__":
     args = parse_args()
+
+    # Set logging
+    logging.basicConfig(level=args.log_level.upper())
+    log = logging.getLogger(__name__)
     
     # Set VSS data paths to subscribe to
     args.vss_paths = [s.strip() for s in args.vss_paths.split(",")]
@@ -130,7 +137,7 @@ if __name__ == "__main__":
 
 
     def termination_signal_received(signal_number, frame):
-        print("Received termination signal. Shutting down")
+        log.info("Received termination signal. Shutting down")
         edge_client.shutdown()
         paho_client.disconnect()
 
@@ -138,5 +145,5 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, termination_signal_received)
     signal.signal(signal.SIGQUIT, termination_signal_received)
     signal.signal(signal.SIGTERM, termination_signal_received)
-    print('before loop forever')
+    log.info('before loop forever')
     paho_client.loop_forever()

@@ -4,7 +4,7 @@
 
 # Introduction
 
-This is an example application that connects to [Eclipse Kuksa Databroker](https://github.com/eclipse-kuksa/kuksa-databroker) and demonstrates how the COVESA Vehicle Signal Specification(VSS) data could be transformed an AWS IoT Shadow using Eclipse Kanto.
+This is an example application that connects to [Eclipse Kuksa Databroker](https://github.com/eclipse-kuksa/kuksa-databroker) and demonstrates how the COVESA Vehicle Signal Specification(VSS) data could be transformed to a digital twin using Eclipse Kanto. For the application it is transparent which Kanto cloud connectivity options is used(AWS, Azure or Suite). Nevertheless, for the completeness of the next guide steps, an AWS connector is chosen, so the VSS data from a Kuksa Databroker will be presented as an AWS IoT Shadow.
 
 # Installation
 
@@ -122,3 +122,4 @@ The Kuksa Example Application is based on python scripts that allows configuring
 |kuksa_host    |string|localhost|Kuksa Databroker host|
 |kuksa_port    |int   |55555    |Kuksa Databroker port|
 |vss_paths     |string|Vehicle.CurrentLocation.Altitude,Vehicle.CurrentLocation.Latitude,Vehicle.CurrentLocation.Longitude,Vehicle.Speed| Comma separated VSS data paths to subscribe to |
+|log_level     |string| info    |Logging level, possible values are critical,fatal,error,warn,warning,info,debug,notset
