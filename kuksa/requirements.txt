@@ -1,0 +1,3 @@
+paho-mqtt==1.5.1
+kuksa-client==0.4.3
+ditto-client @ git+https://github.com/eclipse-ditto/ditto-clients-python@b215e49b4ceaa7253ffc4b5c1db3968482a631bb

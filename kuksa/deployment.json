@@ -1,0 +1,22 @@
+{
+    "container_name": "vss",
+    "image": {
+        "name": "ghcr.io/eclipse-kanto/example-applications/kuksa:main"
+    },
+    "config": {
+      "cmd": [
+        "python",
+        "-u",
+        "/app/edge_client.py",
+        "--mqtt_host=ctrhost",
+        "--kuksa_host=databroker"
+      ]
+    },
+    "host_config": {
+      "extra_hosts": [
+          "ctrhost:host_ip",
+          "databroker:container_databroker-host"
+      ]
+    }
+  }
+  
