@@ -46,7 +46,7 @@ eclipse/paho.mqtt.golang (1.4.3)
 * Project: https://github.com/eclipse/paho.mqtt.golang
 * Source:  https://github.com/eclipse/paho.mqtt.golang/releases/tag/v1.4.3
 
-gorilla/websocket (1.4.2)
+gorilla/websocket (1.5.0)
 
 * License: BSD 2-Clause "Simplified" License
 * Project: https://github.com/gorilla/websocket
@@ -58,17 +58,35 @@ golang/go (1.21)
 * Project: https://github.com/golang/go
 * Source:  https://github.com/golang/go/releases/tag/go1.21
 
-golang.org/x/net (0.17.0)
+google/uuid (1.3.0)
+
+* License: BSD 3-Clause "New" or "Revised" License
+* Project: https://github.com/google/uuid
+* Source:  https://github.com/google/uuid/releases/tag/v1.3.0
+
+pkg/errors (0.9.1)
+
+* License: BSD 2-Clause "Simplified" License
+* Project: https://github.com/pkg/errors
+* Source:  https://github.com/pkg/errors/releases/tag/v0.9.1
+
+rickar/props (1.0.0)
+
+* License: BSD 3-Clause "New" or "Revised" License
+* Project: https://github.com/rickar/props
+* Source:  https://github.com/rickar/props/releases/tag/go1.21
+
+golang.org/x/net (0.25.0)
 
 * License: BSD 3-Clause "New" or "Revised" License
 * Project: https://pkg.go.dev/golang.org/x/net
-* Source:  https://github.com/golang/net/tree/v0.17.0
+* Source:  https://github.com/golang/net/tree/v0.25.0
 
-golang.org/x/sync (0.4.0)
+golang.org/x/sync (0.7.0)
 
 * License: BSD 3-Clause "New" or "Revised" License
 * Project: https://pkg.go.dev/golang.org/x/sync
-* Source:  https://github.com/golang/sync/tree/v0.4.0
+* Source:  https://github.com/golang/sync/tree/v0.7.0
 
 ## Cryptography
 
