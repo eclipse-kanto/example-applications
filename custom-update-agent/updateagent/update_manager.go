@@ -20,8 +20,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/eclipse-kanto/container-management/containerm/log"
-	"github.com/eclipse-kanto/container-management/containerm/version"
 	"github.com/eclipse-kanto/example-applications/custom-update-agent/util"
 
 	"github.com/eclipse-kanto/update-manager/api"
@@ -60,11 +58,11 @@ func (updMgr *fileUpdateManager) Apply(ctx context.Context, activityID string, d
 	updMgr.applyLock.Lock()
 	defer updMgr.applyLock.Unlock()
 
-	log.Debug("processing desired state - start")
+	slog.Debug("processing desired state - start")
 	// create operation instance
 	internalDesiredState, err := toInternalDesiredState(desiredState, updMgr.domainName)
 	if err != nil {
-		log.ErrorErr(err, "could not parse desired state components as file configurations")
+		slog.Error("could not parse desired state components as file configurations", "error", err)
 		updMgr.eventCallback.HandleDesiredStateFeedbackEvent(updMgr.Name(), activityID, "", types.StatusIdentificationFailed, err.Error(), []*types.Action{})
 		return
 	}
@@ -75,23 +73,23 @@ func (updMgr *fileUpdateManager) Apply(ctx context.Context, activityID string, d
 	hasActions, err := newOperation.Identify()
 	if err != nil {
 		newOperation.Feedback(types.StatusIdentificationFailed, err.Error(), "")
-		log.ErrorErr(err, "processing desired state - identification phase failed")
+		slog.Error("processing desired state - identification phase failed", "error", err)
 		return
 	}
 	newOperation.Feedback(types.StatusIdentified, "", "")
 	if !hasActions {
-		log.Debug("processing desired state - identification phase completed, no actions identified, sending COMPLETE status")
+		slog.Debug("processing desired state - identification phase completed, no actions identified, sending COMPLETE status")
 		newOperation.Feedback(types.StatusCompleted, "", "")
 		return
 	}
 	updMgr.operation = newOperation
-	log.Debug("processing desired state - identification phase completed, waiting for commands...")
+	slog.Debug("processing desired state - identification phase completed, waiting for commands...")
 }
 
 // Command processes received desired state command.
 func (updMgr *fileUpdateManager) Command(ctx context.Context, activityID string, command *types.DesiredStateCommand) {
 	if command == nil {
-		log.Error("Skipping received command for activityId %s, but no payload.", activityID)
+		slog.Warn(fmt.Sprintf("Skipping received command for activityId %s, but no payload.", activityID))
 		return
 	}
 	updMgr.applyLock.Lock()
@@ -99,12 +97,12 @@ func (updMgr *fileUpdateManager) Command(ctx context.Context, activityID string,
 
 	operation := updMgr.operation
 	if operation == nil {
-		log.Warn("Ignoring received command %s for baseline %s and activityId %s, but no operation in progress.", command.Command, command.Baseline, activityID)
+		slog.Warn(fmt.Sprintf("Ignoring received command %s for baseline %s and activityId %s, but no operation in progress.", command.Command, command.Baseline, activityID))
 		return
 	}
 	if operation.GetActivityID() != activityID {
-		log.Warn("Ignoring received command %s for baseline %s and activityId %s, but not matching operation in progress [%s].",
-			command.Command, command.Baseline, activityID, operation.GetActivityID())
+		slog.Warn(fmt.Sprintf("Ignoring received command %s for baseline %s and activityId %s, but not matching operation in progress [%s].",
+			command.Command, command.Baseline, activityID, operation.GetActivityID()))
 		return
 	}
 	operation.Execute(command.Command, command.Baseline)
@@ -140,7 +138,7 @@ func (updMgr *fileUpdateManager) asSoftwareNode() *types.SoftwareNode {
 	return &types.SoftwareNode{
 		InventoryNode: types.InventoryNode{
 			ID:      updMgr.Name() + "-update-agent",
-			Version: version.ProjectVersion,
+			Version: "1.0.0",
 			Name:    updateManagerName,
 			Parameters: []*types.KeyValuePair{
 				{
