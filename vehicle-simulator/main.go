@@ -45,9 +45,9 @@ var controlTelemetrySender = make(chan string)
 var ctdEffectDelay = flag.Int("ctd-effect-delay", 30, "In seconds, Configure trunk/alarms state time")
 var periodicUpdatesDelay = flag.Int("periodic-updates-delay", 5, "In seconds, Configure periodic updates (minimum 5)")
 var idleStateTime = flag.Int("idle-state-time", 120, "In seconds, Configure when the system will enter idle state. IDle state will send telemetry data infrequently. Receiving CTD command will reset the idle state.")
-var brokerURL = flag.String("broker-url", "tcp://localhost:1883", "Specify the MQTT broker URL to connect to (default \"tcp://localhost:1883\").")
-var brokerUsername = flag.String("broker-username", "", "Specify the MQTT client password to authenticate with.")
-var brokerPassword = flag.String("broker-password", "", "Specify the MQTT client username to authenticate with.")
+var brokerURL = flag.String("broker-url", "tcp://172.17.0.1:1883", "Specify the MQTT broker URL to connect to (default \"tcp://localhost:1883\").")
+var brokerUsername = flag.String("broker-username", "kvk", "Specify the MQTT client password to authenticate with.")
+var brokerPassword = flag.String("broker-password", "123", "Specify the MQTT client username to authenticate with.")
 
 var initialPeriodicUpdatesDelay = 0 // set the initial periodic updates delay in case of idle state active
 
