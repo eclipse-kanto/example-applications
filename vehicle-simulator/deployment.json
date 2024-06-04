@@ -10,9 +10,8 @@
       "--periodic-updates-delay=5",
       "--idle-state-time=120",
       "--broker-url=tcp://ctrhost:1883",
-      "--brokerUsername=''",
-      "--brokerPassword=''",
-      "--initialPeriodicUpdatesDelay=0"
+      "--broker-username=''",
+      "--broker-password=''"
     ]
   },
   "host_config": {
