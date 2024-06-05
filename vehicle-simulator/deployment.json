@@ -9,9 +9,7 @@
       "--ctd-effect-delay=30",
       "--periodic-updates-delay=5",
       "--idle-state-time=120",
-      "--broker-url=tcp://ctrhost:1883",
-      "--broker-username=''",
-      "--broker-password=''"
+      "--broker-url=tcp://ctrhost:1883"
     ]
   },
   "host_config": {
